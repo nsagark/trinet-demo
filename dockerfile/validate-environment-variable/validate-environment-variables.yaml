@@ -1,0 +1,26 @@
+apiVersion: json.kyverno.io/v1alpha1
+kind: ValidatingPolicy
+metadata:
+  name: validate-environment-variables
+  annotations:
+    policies.kyverno.io/title: Ensure Absence of Sensitive Environment Variables in Dockerfile
+    policies.kyverno.io/category: Dockerfile Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      This policy checks if the Dockerfile contains definitions for ACCESS_KEY and ACCESS_SECRET variables. If the ACCESS_KEY or ACCESS_SECRET variable is defined with a value, the policy fails.
+spec:
+  rules:
+    - name: validate-environment-variables
+      match:
+        any:
+        - (Stages[].Commands[].Env[?Key=='ACCESS_SECRET' || Key=='ACCESS_KEY'][]| length(@) > `0`): true
+      assert:
+        all:
+        - message: "The values of ACCESS_SECRET variable should not be present in the Dockerfile"
+          check:
+            ~.(Stages[].Commands[].Env[?Key=='ACCESS_SECRET'][]): 
+                (Value=='""'): true
+        - message: "The values of ACCESS_KEY variable should not be present in the Dockerfile"
+          check:
+            ~.(Stages[].Commands[].Env[?Key=='ACCESS_KEY'][]):
+                (Value=='""'): true

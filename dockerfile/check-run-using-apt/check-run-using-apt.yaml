@@ -1,0 +1,22 @@
+apiVersion: json.kyverno.io/v1alpha1
+kind: ValidatingPolicy
+metadata:
+  name: check-run-using-apt
+  annotations:
+    policies.kyverno.io/title: Check if the apt is used in the Dockerfile 
+    policies.kyverno.io/category: Dockerfile Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+       This policy ensures that APT isn’t used in the Dockerfile
+spec:
+  rules:
+    - name: check-run-using-apt
+      match:
+        any:
+        - (Stages[].Commands[?Name=='RUN'].CmdLine[][] | length(@) > `0`): true
+      assert:
+        all:
+        - message: Use 'apt-get' over 'apt' since 'apt-get' interface is more stable
+          check:
+            ~.(Stages[].Commands[?Name=='RUN'].CmdLine[][]):
+                ((starts_with(@, 'apt ') || contains(@, ' apt '))): false

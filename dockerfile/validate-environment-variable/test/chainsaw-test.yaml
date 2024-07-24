@@ -1,0 +1,69 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: good-test
+spec:
+  steps:
+    - name: kyverno-json
+      try:
+      - script:
+          content: |
+            set -e
+            kyverno-json scan --policy ../validate-environment-variables.yaml --payload ./good-test/good-payload.json --output json
+          check:
+            ($error): ~
+            (json_parse($stdout)):
+            - results:
+              - policy:
+                  apiVersion: json.kyverno.io/v1alpha1
+                  kind: ValidatingPolicy
+                  metadata:
+                    name: validate-environment-variables
+                rules:
+                - rule:
+                    name: validate-environment-variables
+                  error: ~
+                  violations: ~
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: bad-test
+spec:
+  steps:
+    - name: kyverno-json
+      try:
+      - script:
+          content: |
+            set -e
+            kyverno-json scan --policy ../validate-environment-variables.yaml --payload ./bad-test/bad-payload.json --output json
+          check:
+            ($error): ~
+            (json_parse($stdout)):
+            - results:
+              - policy:
+                  apiVersion: json.kyverno.io/v1alpha1
+                  kind: ValidatingPolicy
+                  metadata:
+                    name: validate-environment-variables
+                rules:
+                - rule:
+                    name: validate-environment-variables
+                  error: ~
+                  violations:
+                  - message: The values of ACCESS_SECRET variable should not be present in the Dockerfile
+                    errors:
+                    - type: FieldValueInvalid
+                      field: "all[0].check.~.(Stages[].Commands[].Env[?Key=='ACCESS_SECRET'][])[0].(Value=='\"\"')"
+                      value: false
+                      detail: 'Expected value: true'
+                  - message: The values of ACCESS_KEY variable should not be present in the Dockerfile
+                    errors:
+                    - type: FieldValueInvalid
+                      field: "all[1].check.~.(Stages[].Commands[].Env[?Key=='ACCESS_KEY'][])[0].(Value=='\"\"')"
+                      value: false
+                      detail: 'Expected value: true'
+
+

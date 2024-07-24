@@ -1,0 +1,30 @@
+
+apiVersion: json.kyverno.io/v1alpha1
+kind: ValidatingPolicy
+metadata:
+  name: validate-expose-port-8080
+  annotations:
+    policies.kyverno.io/title: Validate Exposure of Ports in Dockerfile
+    policies.kyverno.io/category: Dockerfile Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      This policy ensures that the Dockerfile exposes only the essential ports (8080, 22, 443, 80) for the service being implemented.
+spec:
+  rules:
+    - name: validate-expose-port-8080
+      match:
+        any:
+        - (Stages[].Commands[?Name=='EXPOSE'][] | length(@) > `0`): true
+      context:
+      - name: essential_ports
+        variable: 
+        - "8080"
+        - "22"
+        - "443"
+        - "80"
+      assert:
+        any:
+        - message: All exposed ports should be either 8080, 22, 443, or 80.
+          check:
+            ~.(Stages[].Commands[?Name=='EXPOSE'].Ports[][]):
+                (contains($essential_ports, @)): true

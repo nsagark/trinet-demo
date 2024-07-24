@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: good-test
+spec:
+  steps:
+    - name: kyverno-json
+      try:
+      - script:
+          content: |
+            set -e
+            kyverno-json scan --policy ../validate-expose-port-8080.yaml --payload ./good-test/good-payload.json --output json
+          check:
+            ($error): ~
+            (json_parse($stdout)):
+            - results:
+              - policy:
+                  apiVersion: json.kyverno.io/v1alpha1
+                  kind: ValidatingPolicy
+                  metadata:
+                    name: validate-expose-port-8080
+                rules:
+                - rule:
+                    name: validate-expose-port-8080
+                  error: ~
+                  violations: ~
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: bad-test
+spec:
+  steps:
+    - name: kyverno-json
+      try:
+      - script:
+          content: |
+            set -e
+            kyverno-json scan --policy ../validate-expose-port-8080.yaml --payload ./bad-test/bad-payload.json --output json
+          check:
+            ($error): ~
+            (json_parse($stdout)):
+            - results:
+              - policy:
+                  apiVersion: json.kyverno.io/v1alpha1
+                  kind: ValidatingPolicy
+                  metadata:
+                    name: validate-expose-port-8080
+                rules:
+                - rule:
+                    name: validate-expose-port-8080
+                  error: ~
+                  violations:
+                  - message: All exposed ports should be either 8080, 22, 443, or 80.
+                    errors:
+                    - type: FieldValueInvalid
+                      field: "any[0].check.~.(Stages[].Commands[?Name=='EXPOSE'].Ports[][])[1].(contains($essential_ports, @))"
+                      value: false
+                      detail: 'Expected value: true'
+ 
